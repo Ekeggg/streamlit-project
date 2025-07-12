@@ -5,4 +5,4 @@ matplotlib
 scikit-learn
 gdown
 plotly
-polars
+polars>=0.20.0
