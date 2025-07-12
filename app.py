@@ -7,11 +7,11 @@ from sklearn.preprocessing import StandardScaler
 import gdown
 import os
 
-# Silence Polars warnings
+# Silence warnings
 import warnings
 warnings.filterwarnings("ignore")
 
-# ENSO phase labels
+# ENSO labels
 enso_labels = {
     2017: "L", 2016: "N", 2015: "E", 2014: "E", 2013: "N", 2012: "N", 2011: "L", 2010: "L",
     2009: "E", 2008: "L", 2007: "L", 2006: "E", 2005: "N", 2004: "E", 2003: "N", 2002: "E",
@@ -31,16 +31,9 @@ enso_labels = {
     1897: "N", 1896: "E", 1895: "N", 1894: "N", 1893: "L", 1892: "L", 1891: "N", 1890: "N"
 }
 
-file_id = "1n7cREgviHR9PJjMZtgverCPIB3F1blm2"
-output_path = "filled_output.csv"
-
-# Download CSV if needed
-if not os.path.exists(output_path):
-    gdown.download(f"https://drive.google.com/uc?id={file_id}", output_path, quiet=False)
-
+# Sidebar filters
 st.title("Clustering Analysis of Temperature Data")
 
-# Sidebar filters
 selected_phases = st.sidebar.multiselect(
     "Select ENSO Phases", options=['E', 'L'], default=['E', 'L']
 )
@@ -49,96 +42,97 @@ selected_months = st.sidebar.multiselect(
 )
 k = st.sidebar.slider("Select number of clusters (k)", min_value=2, max_value=10, value=6)
 
-# Show loading spinner
-with st.spinner('Loading and processing data...'):
+# File setup
+file_id = "1n7cREgviHR9PJjMZtgverCPIB3F1blm2"
+output_path = "filled_output.csv"
 
+if not os.path.exists(output_path):
+    gdown.download(f"https://drive.google.com/uc?id={file_id}", output_path, quiet=False)
+
+with st.spinner('Loading and processing data...'):
     # Lazy read
     df = pl.scan_csv(output_path)
-
-    # Filter
-    df = df.filter(
-        pl.col("month").is_in(selected_months) &
-        pl.col("year").is_in(list(enso_labels.keys()))
-    )
 
     # Join ENSO labels
     enso_df = pl.DataFrame({
         "year": list(enso_labels.keys()),
         "enso_label": list(enso_labels.values())
     }).lazy()
-    df = df.join(enso_df, on="year", how="inner")
 
-    # Smooth temperature
-    # Polars rolling mean requires sorted data
+    # Filter years and months and join ENSO
+    df = df.filter(
+        pl.col("month").is_in(selected_months)
+    ).join(
+        enso_df, on="year", how="inner"
+    )
+
+    # Sort before rolling mean
     df = df.sort(["latitude", "longitude", "year", "month"])
+
+    # Compute rolling mean
     df = df.with_columns(
-        pl.col("temperature")
-        .rolling_mean(window_size=3, center=True)
-        .alias("temp_smooth")
+        pl.col("temperature").rolling_mean(window_size=3, center=True).alias("temp_smooth")
     )
 
-    # Aggregate mean temp_smooth per phase
-    agg_df = (
+    # Group by location + ENSO label, compute mean
+    grouped_df = (
         df.groupby(["latitude", "longitude", "enso_label"])
-        .agg(pl.col("temp_smooth").mean().alias("temp_mean"))
+        .agg([
+            pl.col("temp_smooth").mean().alias("temp_mean")
+        ])
+        .collect()
     )
 
-    # Collect to pandas
-    agg_pd = agg_df.collect().to_pandas()
+# At this point, grouped_df is Eager DataFrame
+# Convert to Pandas
+agg_pd = grouped_df.to_pandas()
 
-    # Pivot
-    pivot = agg_pd.pivot(
-        index=["latitude", "longitude"],
-        columns="enso_label",
-        values="temp_mean"
-    ).reset_index()
+# Pivot
+pivot = agg_pd.pivot(
+    index=["latitude", "longitude"],
+    columns="enso_label",
+    values="temp_mean"
+).reset_index()
 
-    # Rename columns to match your previous naming
-    pivot = pivot.rename(columns={"E": "enso_E", "L": "enso_L"})
+# Rename for clarity
+pivot = pivot.rename(columns={"E": "enso_E", "L": "enso_L"})
 
-    # Fill any missing values
-    pivot = pivot.fillna(0)
+# Fill missing
+pivot = pivot.fillna(0)
 
-    # Clustering
-    clustering_cols = ['enso_E', 'enso_L']
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(pivot[clustering_cols])
+# Clustering
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(pivot[["enso_E", "enso_L"]])
 
-    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10)
-    pivot['cluster'] = kmeans.fit_predict(X_scaled)
+kmeans = KMeans(n_clusters=k, random_state=0, n_init=10)
+pivot["cluster"] = kmeans.fit_predict(X_scaled)
 
-    # Difference
-    pivot['temp_diff'] = pivot['enso_E'] - pivot['enso_L']
+pivot["temp_diff"] = pivot["enso_E"] - pivot["enso_L"]
 
-# Plotly scatter
+# Plot
 fig = px.scatter(
     pivot,
-    x='longitude',
-    y='latitude',
-    color='cluster',
-    title='Interactive Cluster Map',
-    color_continuous_scale='Viridis',
-    labels={'longitude': 'Longitude', 'latitude': 'Latitude'},
-    hover_data={'enso_E': True, 'enso_L': True, 'temp_diff': True}
+    x="longitude",
+    y="latitude",
+    color="cluster",
+    title="Interactive Cluster Map",
+    color_continuous_scale="Viridis",
+    labels={"longitude": "Longitude", "latitude": "Latitude"},
+    hover_data={"enso_E": True, "enso_L": True, "temp_diff": True}
 )
 st.plotly_chart(fig)
 
-# Description
-st.markdown("""
-This image shows the result of a clustering analysis that groups global land locations based on how their December–January–February (DJF) temperatures respond to ENSO (El Niño–Southern Oscillation) events. 
-K-means clustering was applied to temperature anomalies during El Niño (E) and La Niña (L) winters, resulting in distinct clusters that represent different temperature response patterns. Each color represents a different cluster.
-""")
-
-# Cluster summary table
-cluster_summary = pivot.groupby('cluster')[['enso_E', 'enso_L', 'temp_diff']].mean().reset_index()
-st.subheader('Cluster Summary')
+# Cluster summary
+st.subheader("Cluster Summary")
+cluster_summary = pivot.groupby("cluster")[["enso_E", "enso_L", "temp_diff"]].mean().reset_index()
 st.dataframe(cluster_summary)
 
-# Descriptive statistics
-st.subheader('Cluster Statistics')
-st.write(pivot.groupby('cluster')[['enso_E', 'enso_L']].describe())
+# Cluster statistics
+st.subheader("Cluster Statistics")
+st.write(pivot.groupby("cluster")[["enso_E", "enso_L"]].describe())
 
+# Description
 st.write("""
-The strongest El Niño warming (Cluster with highest enso_E) appears in equatorial and tropical regions, aligning with canonical ENSO teleconnection patterns.
-Clusters exhibiting cooling during El Niño are consistent with known responses in North America and Asia.
+This map shows the clustering of global locations based on their temperature response during El Niño and La Niña winters (December–February).
+Each color corresponds to a different response pattern.
 """)
