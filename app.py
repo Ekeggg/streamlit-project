@@ -65,7 +65,7 @@ with st.spinner('Loading and processing data...'):
     enso_df = pl.DataFrame({
         "year": list(enso_labels.keys()),
         "enso_label": list(enso_labels.values())
-    })
+    }).lazy()
     df = df.join(enso_df, on="year", how="inner")
 
     # Smooth temperature
