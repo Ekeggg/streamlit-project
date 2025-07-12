@@ -76,7 +76,7 @@ with st.spinner('Loading and processing data...'):
 
     # Group by location + ENSO label, compute mean
     grouped_df = (
-        df.groupby(["latitude", "longitude", "enso_label"])
+        df.group_by(["latitude", "longitude", "enso_label"])
         .agg([
             pl.col("temp_smooth").mean().alias("temp_mean")
         ])
