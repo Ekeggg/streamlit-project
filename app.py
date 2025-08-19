@@ -44,10 +44,11 @@ k = st.sidebar.slider("Select number of clusters (k)", min_value=2, max_value=10
 
 # File setup
 file_id = "1n7cREgviHR9PJjMZtgverCPIB3F1blm2"
+file_idv2 = "1o6lxsr96LcdYGJ2UP5_8CW8khAccJjFe"
 output_path = "filled_output.csv"
 
 if not os.path.exists(output_path):
-    gdown.download(f"https://drive.google.com/uc?id={file_id}", output_path, quiet=False)
+    gdown.download(f"https://drive.google.com/uc?id={file_idv2}", output_path, quiet=False)
 
 with st.spinner('Loading and processing data...'):
     # Lazy read
