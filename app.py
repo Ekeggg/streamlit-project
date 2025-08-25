@@ -38,7 +38,7 @@ selected_phases = st.sidebar.multiselect(
     "Select ENSO Phases", options=['E', 'L'], default=['E', 'L']
 )
 selected_months = st.sidebar.multiselect(
-    "Select Months", options=[12, 1, 2], default=[12, 1, 2]
+    "Select Months", options=[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], default=[12, 1, 2]
 )
 k = st.sidebar.slider("Select number of clusters (k)", min_value=2, max_value=10, value=6)
 
