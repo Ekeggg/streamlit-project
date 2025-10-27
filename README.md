@@ -4,7 +4,7 @@ This streamlit application displays the results of a clustering analysis of temp
 
 # Data
 
-Data from Berkeley Earth was used for this project. This data provides temperature anomalies on each land coordinate every month in NetCDF format. The data can be found [here]([url](https://berkeley-earth-temperature.s3.us-west-1.amazonaws.com/Global/Gridded/Complete_TAVG_LatLong1.nc)).
+Data from Berkeley Earth was used for this project. This data provides temperature anomalies on each land coordinate every month in NetCDF format. The data can be found [here](https://berkeley-earth-temperature.s3.us-west-1.amazonaws.com/Global/Gridded/Complete_TAVG_LatLong1.nc).
 
 # Features
 
