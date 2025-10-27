@@ -14,4 +14,6 @@ This Streamlit project consists of an interactive map that displays the cluster 
 
 This streamlit project can be found at ensoanomalyclustering.streamlit.app.
 
+# More info
 
+More information can be found at (insert published medium link)
