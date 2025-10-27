@@ -1,6 +1,6 @@
 # Overview
 
-This streamlit application displays the results of a clustering analysis of temperature anomalies based on ENSO conditions (El Niño and La Niña). On the map, multiple clusters are shown with different colors. scikit-learn's K-means clustering was used for this clustering analysis.
+This streamlit application displays the results of a clustering analysis of temperature anomalies based on ENSO conditions (El Niño and La Niña). On the map, multiple clusters are shown with different colors, where each point on the graph represents a coordinate point in the dataset. scikit-learn's K-means clustering was used for this clustering analysis.
 
 # Data
 
